@@ -1,0 +1,82 @@
+<!-- components/shareModal.wxml -->
+<view class="share-modal {{showShareModal ? 'show' : ''}}" wx:if="{{showShareModal}}">
+  <view class="modal-mask" bindtap="closeShareModal"></view>
+  <view class="modal-content">
+    <view class="modal-handle"></view>
+
+    <view class="modal-header">
+      <text class="modal-title">分享给好友</text>
+      <view class="close-btn" bindtap="closeShareModal">
+        <text>✕</text>
+      </view>
+    </view>
+
+    <!-- 分享卡片预览 -->
+    <view class="share-card">
+      <view class="card-decoration top-right"></view>
+      <view class="card-decoration bottom-left"></view>
+
+      <view class="card-content">
+        <view class="user-section">
+          <image class="user-avatar" src="{{user.avatar}}" mode="aspectFill" />
+          <view class="user-info">
+            <text class="user-name">{{user.name}}</text>
+            <text class="user-tip">邀请你一起备考雅思</text>
+          </view>
+        </view>
+
+        <view class="achievement-banner">
+          <text class="banner-label">我已连续打卡</text>
+          <text class="banner-value">{{user.streak}} <text class="banner-unit">天</text></text>
+          <text class="banner-desc">雅思听力 21 天突破计划 · 加入我！</text>
+        </view>
+
+        <view class="tags-row">
+          <view class="tag">剑桥真题</view>
+          <view class="tag">双语字幕</view>
+          <view class="tag">AI打卡</view>
+        </view>
+
+        <view class="qr-section">
+          <view class="qr-box">
+            <view class="qr-pattern">
+              <block wx:for="{{25}}" wx:key="index">
+                <view class="qr-dot {{[1,1,1,1,1,0,0,0,1,1,0,0,1,0,1,1,0,0,0,1,1,1,1,1,1][index] ? 'dark' : ''}}"></view>
+              </block>
+            </view>
+            <text class="qr-label">扫码加入</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 分享选项 -->
+    <view class="share-options">
+      <view class="share-option">
+        <view class="option-icon" style="background: rgba(7,193,96,0.1); border-color: rgba(7,193,96,0.3);">
+          <text>💬</text>
+        </view>
+        <text class="option-text">微信好友</text>
+      </view>
+      <view class="share-option">
+        <view class="option-icon" style="background: rgba(255,154,162,0.1); border-color: rgba(255,154,162,0.3);">
+          <text>🌟</text>
+        </view>
+        <text class="option-text">朋友圈</text>
+      </view>
+      <view class="share-option">
+        <view class="option-icon" style="background: rgba(168,216,234,0.1); border-color: rgba(168,216,234,0.3);">
+          <text>🖼</text>
+        </view>
+        <text class="option-text">生成海报</text>
+      </view>
+    </view>
+
+    <!-- 复制链接 -->
+    <view class="copy-link-btn {{copied ? 'copied' : ''}}" bindtap="handleCopy">
+      <text wx:if="{{!copied}}">🔗</text>
+      <text wx:else>✓</text>
+      <text class="link-text">{{copied ? '链接已复制！' : '复制邀请链接'}}</text>
+    </view>
+  </view>
+</view>

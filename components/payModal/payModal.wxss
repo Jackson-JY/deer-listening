@@ -1,0 +1,287 @@
+/* components/payModal/payModal.wxss */
+
+/* 支付弹窗 */
+.pay-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.pay-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-mask {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #FFFFFF;
+  border-radius: 56rpx 56rpx 0 0;
+  padding: 0 40rpx 64rpx;
+  box-shadow: 0 -16rpx 80rpx rgba(180, 160, 200, 0.25);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.pay-modal.show .modal-content {
+  transform: translateY(0);
+}
+
+.modal-handle {
+  width: 80rpx;
+  height: 8rpx;
+  background: #E0E0E0;
+  border-radius: 8rpx;
+  margin: 16rpx auto 32rpx;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.modal-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #5D5D5D;
+}
+
+.close-btn {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: #999;
+}
+
+.course-info {
+  background: #FFF5F5;
+  border-radius: 28rpx;
+  padding: 24rpx;
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.course-thumb {
+  width: 112rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.course-detail {
+  flex: 1;
+}
+
+.course-day {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #5D5D5D;
+  margin-bottom: 4rpx;
+}
+
+.course-name {
+  display: block;
+  font-size: 26rpx;
+  color: #5D5D5D;
+  margin-bottom: 4rpx;
+}
+
+.course-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 套餐列表 */
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.plan-item {
+  border: 4rpx solid #F0F0F0;
+  border-radius: 28rpx;
+  padding: 24rpx 28rpx;
+  background: #FAFAFA;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.plan-item.selected {
+  border-color: #A8D8EA;
+  background: rgba(168,216,234,0.06);
+}
+
+.plan-badge {
+  position: absolute;
+  top: -20rpx;
+  right: 24rpx;
+  background: linear-gradient(135deg, #FF9AA2, #FFB6C1);
+  color: #FFFFFF;
+  font-size: 20rpx;
+  font-weight: 700;
+  padding: 4rpx 16rpx;
+  border-radius: 16rpx;
+}
+
+.plan-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.plan-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #5D5D5D;
+  margin-bottom: 4rpx;
+}
+
+.plan-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #999;
+}
+
+.plan-price {
+  text-align: right;
+}
+
+.price-current {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #FF9AA2;
+  margin-bottom: 4rpx;
+}
+
+.price-original {
+  display: block;
+  font-size: 22rpx;
+  color: #CCC;
+  text-decoration: line-through;
+}
+
+/* 权益 */
+.benefits {
+  display: flex;
+  gap: 32rpx;
+  margin-bottom: 40rpx;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #999;
+}
+
+.benefit-item text:first-child {
+  font-size: 26rpx;
+}
+
+/* 支付按钮 */
+.pay-btn {
+  width: 100%;
+  padding: 30rpx;
+  background: linear-gradient(135deg, #FFB6C1, #A8D8EA);
+  border-radius: 40rpx;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 12rpx 40rpx rgba(168, 216, 234, 0.4);
+}
+
+/* 支付中 */
+.pay-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32rpx;
+  padding: 60rpx 0;
+}
+
+.loading-spinner {
+  width: 96rpx;
+  height: 96rpx;
+  border: 8rpx solid #F0F0F0;
+  border-top-color: #A8D8EA;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 32rpx;
+  color: #5D5D5D;
+  font-weight: 600;
+}
+
+.loading-hint {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 支付成功 */
+.pay-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 60rpx 0;
+}
+
+.success-icon {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: #B5EAD7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.check {
+  font-size: 56rpx;
+  color: #4CAF91;
+}
+
+.success-text {
+  font-size: 36rpx;
+  color: #5D5D5D;
+  font-weight: 700;
+}
+
+.success-hint {
+  font-size: 26rpx;
+  color: #999;
+}

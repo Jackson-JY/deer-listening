@@ -1,0 +1,140 @@
+<!-- pages/courses/courses.wxml -->
+<view class="page">
+  <!-- 顶部数据区 -->
+  <view class="header-section">
+    <view class="header-top">
+      <view class="header-info">
+        <text class="header-sub">我的课程进度</text>
+        <text class="header-title">21天听力突破计划</text>
+      </view>
+      <view class="refresh-btn" bindtap="onRefresh">
+        <text class="refresh-icon" style="{{isRefreshing ? 'animation: spin 1s linear infinite' : ''}}">↻</text>
+      </view>
+    </view>
+
+    <!-- 数据卡片 -->
+    <view class="stats-row">
+      <view class="stat-card">
+        <text class="stat-label">已完成</text>
+        <text class="stat-value">{{completed}}<text class="stat-unit">/{{total}}</text></text>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🔥</text>
+        <view class="stat-info">
+          <text class="stat-label">连续打卡</text>
+          <text class="stat-value">{{streak}} <text class="stat-unit">天</text></text>
+        </view>
+      </view>
+      <view class="stat-card">
+        <text class="stat-icon">🏆</text>
+        <view class="stat-info">
+          <text class="stat-label">目标分数</text>
+          <text class="stat-value">7.0</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 进度条 -->
+    <view class="progress-section">
+      <view class="progress-header">
+        <text class="progress-text">整体进度 {{progress}}%</text>
+        <text class="progress-text">还剩 {{total - completed}} 节</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{progress}}%"></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 课程列表 -->
+  <view class="course-list">
+    <view class="list-header">
+      <text class="section-title">全部课程</text>
+      <view class="legend">
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #B5EAD7"></view>
+          <text class="legend-text">已完成</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #FFB6C1"></view>
+          <text class="legend-text">进行中</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #E0E0E0"></view>
+          <text class="legend-text">未解锁</text>
+        </view>
+      </view>
+    </view>
+
+    <block wx:for="{{courses}}" wx:key="id">
+      <view class="course-card" data-course="{{item}}" bindtap="onCourseTap">
+        <!-- 缩略图 -->
+        <view class="course-thumb">
+          <image 
+            class="thumb-image" 
+            src="{{item.thumbnail}}" 
+            mode="aspectFill"
+            style="{{item.status === 'locked' ? 'filter: grayscale(80%) blur(2rpx)' : ''}}"
+          />
+          <!-- 锁定遮罩 -->
+          <view class="lock-overlay" wx:if="{{item.status === 'locked'}}">
+            <text class="lock-icon">🔒</text>
+          </view>
+          <!-- 完成标记 -->
+          <view class="complete-badge" wx:if="{{item.status === 'completed'}}">
+            <text class="check-icon">✓</text>
+          </view>
+          <!-- Day 标签 -->
+          <view class="day-badge {{item.status === 'locked' ? 'locked' : ''}}">
+            <text>Day {{item.day}}</text>
+          </view>
+        </view>
+
+        <!-- 内容 -->
+        <view class="course-content">
+          <view class="course-info">
+            <text class="course-title {{item.status === 'locked' ? 'locked' : ''}}">{{item.title}}</text>
+            <view class="course-meta">
+              <text class="play-icon">▶</text>
+              <text class="duration">{{item.duration}}</text>
+              <view class="checked-tag" wx:if="{{item.checkedIn}}">
+                <text>✓ 已打卡</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 进度条 -->
+          <view class="course-progress" wx:if="{{item.status === 'inProgress' || item.status === 'completed'}}">
+            <view class="progress-bar-small">
+              <view class="progress-fill-small" style="width: {{item.progress}}%"></view>
+            </view>
+            <text class="progress-text-small">{{item.status === 'completed' ? '已完成' : item.progress + '%'}}</text>
+          </view>
+
+          <!-- 锁定提示 -->
+          <view class="lock-hint" wx:if="{{item.status === 'locked'}}">
+            <text>🔒 购买解锁</text>
+          </view>
+
+          <!-- 开始学习 -->
+          <view class="start-hint" wx:if="{{item.status === 'unlocked'}}">
+            <text>开始学习</text>
+          </view>
+        </view>
+
+        <!-- 箭头 -->
+        <view class="arrow-icon">
+          <text>›</text>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <!-- 支付弹窗 -->
+  <payModal 
+    show="{{showPayModal}}" 
+    course="{{selectedCourse}}"
+    bind:close="closePayModal"
+    bind:success="onPaySuccess"
+  />
+</view>

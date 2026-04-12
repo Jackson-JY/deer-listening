@@ -1,0 +1,67 @@
+<!-- components/loginTip/loginTip.wxml -->
+<view class="login-overlay" wx:if="{{show}}">
+  <view class="login-modal">
+    <!-- 头像区域 -->
+    <view class="avatar-section">
+      <image 
+        class="avatar {{hasAvatar ? '' : 'placeholder'}}" 
+        src="{{avatarUrl || 'https://images.unsplash.com/photo-1619431667975-e93b820cde63?w=200&q=80'}}" 
+        mode="aspectFill"
+      />
+      <button 
+        class="avatar-btn" 
+        open-type="getUserInfo" 
+        bindgetuserinfo="onGetUserInfo"
+        wx:if="{{!hasAvatar}}"
+      >
+        <text class="avatar-tip">点击授权头像</text>
+      </button>
+    </view>
+
+    <!-- 昵称输入 -->
+    <view class="nickname-section" wx:if="{{!hasNickname}}">
+      <input 
+        class="nickname-input" 
+        type="nickname" 
+        placeholder="请输入昵称" 
+        value="{{nickname}}"
+        bindinput="onNicknameInput"
+      />
+    </view>
+    <view class="nickname-section" wx:else>
+      <text class="nickname-text">{{nickname}}</text>
+    </view>
+
+    <!-- 手机号授权 -->
+    <view class="phone-section" wx:if="{{!hasPhone && hasAvatar}}">
+      <button 
+        class="phone-btn" 
+        open-type="getPhoneNumber" 
+        bindgetphonenumber="onGetPhoneNumber"
+      >
+        <text class="phone-icon">📱</text>
+        <text>授权手机号（用于接收学习提醒）</text>
+      </button>
+    </view>
+    <view class="phone-section success" wx:elif="{{hasPhone}}">
+      <text class="phone-success">✓ 已授权手机号</text>
+    </view>
+
+    <!-- 登录按钮 -->
+    <button 
+      class="login-btn {{canLogin ? '' : 'disabled'}}" 
+      bindtap="onLogin"
+      loading="{{loading}}"
+      disabled="{{!canLogin}}"
+    >
+      {{hasAvatar && hasNickname ? '微信一键登录' : '请完善信息'}}
+    </button>
+
+    <text class="login-tip">登录即表示同意《用户协议》和《隐私政策》</text>
+
+    <!-- 跳过按钮 -->
+    <view class="skip-btn" bindtap="onSkip" wx:if="{{hasAvatar && hasNickname}}">
+      <text>先逛逛 →</text>
+    </view>
+  </view>
+</view>

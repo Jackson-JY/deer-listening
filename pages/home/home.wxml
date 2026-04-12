@@ -1,0 +1,245 @@
+<!-- pages/home/home.wxml -->
+<view class="page">
+  <!-- 顶部导航 -->
+  <view class="header">
+    <view class="header-left">
+      <text class="header-tag">🎧 雅思训练营</text>
+      <text class="header-title">听力突破计划</text>
+    </view>
+    <view class="header-right">
+      <view class="streak-badge">
+        <text class="streak-icon">🔥</text>
+        <text class="streak-text">5天</text>
+      </view>
+      <view class="share-btn" bindtap="openShareModal">
+        <text class="icon-share">↗</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Banner 轮播 -->
+  <view class="banner-section">
+    <swiper 
+      class="banner-swiper" 
+      indicator-dots="{{false}}" 
+      autoplay="{{false}}" 
+      current="{{bannerIndex}}"
+    >
+      <block wx:for="{{banners}}" wx:key="index">
+        <swiper-item>
+          <view class="banner-item">
+            <image class="banner-image" src="{{item.img}}" mode="aspectFill" />
+            <view class="banner-overlay"></view>
+            <view class="banner-badge">{{item.badge}}</view>
+            <view class="banner-content">
+              <text class="banner-title">{{item.title}}</text>
+              <text class="banner-sub">{{item.sub}}</text>
+              <view class="banner-cta" bindtap="goToCourses">
+                <text class="cta-icon">▶</text>
+                <text class="cta-text">{{item.cta}}</text>
+              </view>
+            </view>
+          </view>
+        </swiper-item>
+      </block>
+    </swiper>
+    
+    <!-- Banner 指示器 -->
+    <view class="banner-dots">
+      <block wx:for="{{banners}}" wx:key="index">
+        <view 
+          class="dot {{bannerIndex === index ? 'active' : ''}}" 
+          bindtap="changeBanner" 
+          data-index="{{index}}"
+        ></view>
+      </block>
+    </view>
+    
+    <!-- Banner 左右箭头 -->
+    <view class="banner-arrow left {{bannerIndex === 0 ? 'hidden' : ''}}" bindtap="prevBanner">
+      <text>‹</text>
+    </view>
+    <view class="banner-arrow right {{bannerIndex === banners.length - 1 ? 'hidden' : ''}}" bindtap="nextBanner">
+      <text>›</text>
+    </view>
+  </view>
+
+  <!-- 核心卖点 -->
+  <view class="selling-points-section">
+    <view class="section-header">
+      <text class="section-title">为什么选择我们</text>
+      <text class="section-sub">✓ 12,847 人已加入</text>
+    </view>
+    <view class="selling-points">
+      <block wx:for="{{sellingPoints}}" wx:key="index">
+        <view class="selling-point" style="background: #FFFFFF; border: 1px solid {{item.color}}30;">
+          <view class="point-icon-wrap" style="background: {{item.bg}};">
+            <text class="point-icon" wx:if="{{item.icon === 'headphones'}}">🎧</text>
+            <text class="point-icon" wx:elif="{{item.icon === 'book'}}">📖</text>
+            <text class="point-icon" wx:elif="{{item.icon === 'zap'}}">⚡</text>
+          </view>
+          <text class="point-title">{{item.title}}</text>
+          <text class="point-desc">{{item.desc}}</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 限时优惠 -->
+  <view class="offer-section">
+    <view class="offer-card">
+      <view class="offer-left">
+        <view class="offer-icon">🏆</view>
+        <view class="offer-info">
+          <text class="offer-title">限时特惠 · 前3节免费体验</text>
+          <text class="offer-sub">全营仅需 ¥98，原价 ¥298</text>
+        </view>
+      </view>
+      <view class="offer-right">
+        <text class="offer-tag">限时</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 免费体验课程 -->
+  <view class="preview-section">
+    <view class="section-header">
+      <text class="section-title">免费体验课程</text>
+      <view class="view-all" bindtap="goToCourses">
+        <text>全部21课</text>
+        <text class="arrow">›</text>
+      </view>
+    </view>
+    <scroll-view class="course-scroll" scroll-x="{{true}}" show-scrollbar="{{false}}">
+      <block wx:for="{{previewCourses}}" wx:key="id">
+        <view class="course-preview-card" bindtap="goToCourseDetail" data-id="{{item.id}}">
+          <view class="preview-thumb">
+            <image class="thumb-image" src="{{item.thumbnail}}" mode="aspectFill" />
+            <view class="thumb-overlay"></view>
+            <view class="free-badge">免费</view>
+            <view class="day-badge">Day {{item.day}}</view>
+            <view class="play-btn">
+              <text>▶</text>
+            </view>
+          </view>
+          <view class="preview-info">
+            <text class="preview-title">{{item.title}}</text>
+            <text class="preview-duration">{{item.duration}}</text>
+            <view class="preview-cta">免费体验 →</view>
+          </view>
+        </view>
+      </block>
+      <!-- 查看全部 -->
+      <view class="view-all-card" bindtap="goToCourses">
+        <text class="view-all-icon">›</text>
+        <text class="view-all-text">查看全部\n21 节课</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 社交证明 -->
+  <view class="social-proof-section">
+    <!-- 数据统计 -->
+    <view class="stats-card">
+      <block wx:for="{{stats}}" wx:key="index">
+        <view class="stat-item">
+          <text class="stat-value">{{item.display}}{{item.suffix}}</text>
+          <text class="stat-label">{{item.label}}</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 学员好评 -->
+    <view class="reviews-section">
+      <view class="section-header">
+        <text class="section-title">学员好评</text>
+        <view class="review-dots">
+          <block wx:for="{{reviews}}" wx:key="index">
+            <view 
+              class="dot {{reviewIndex === index ? 'active' : ''}}" 
+              bindtap="changeReview"
+              data-index="{{index}}"
+            ></view>
+          </block>
+        </view>
+      </view>
+      <swiper 
+        class="review-swiper" 
+        indicator-dots="{{false}}" 
+        autoplay="{{false}}" 
+        current="{{reviewIndex}}"
+      >
+        <block wx:for="{{reviews}}" wx:key="id">
+          <swiper-item>
+            <view class="review-card">
+              <view class="review-user">
+                <image class="user-avatar" src="{{item.avatar}}" />
+                <view class="user-badge">{{item.score}}</view>
+                <view class="user-info">
+                  <text class="user-name">{{item.name}}</text>
+                  <view class="user-stars">
+                    <text class="star">★★★★★</text>
+                    <text class="score-tag">雅思 {{item.score}} 分</text>
+                  </view>
+                </view>
+                <view class="streak-tag">
+                  <text>🔥</text>
+                  <text>{{item.days}}天</text>
+                </view>
+              </view>
+              <text class="review-text">「{{item.text}}」</text>
+              <view class="review-tag">✓ 坚持 {{item.days}} 天打卡</view>
+            </view>
+          </swiper-item>
+        </block>
+      </swiper>
+      <text class="review-hint">左右滑动查看更多好评</text>
+    </view>
+  </view>
+
+  <!-- 信任信号 -->
+  <view class="trust-section">
+    <view class="trust-card">
+      <view class="trust-item">
+        <text class="trust-emoji">🏆</text>
+        <text class="trust-label">剑桥认证</text>
+        <text class="trust-sub">原版材料</text>
+      </view>
+      <view class="trust-divider"></view>
+      <view class="trust-item">
+        <text class="trust-emoji">🎓</text>
+        <text class="trust-label">专业讲师</text>
+        <text class="trust-sub">雅思 8.5 分</text>
+      </view>
+      <view class="trust-divider"></view>
+      <view class="trust-item">
+        <text class="trust-emoji">💰</text>
+        <text class="trust-label">7天退款</text>
+        <text class="trust-sub">无忧保障</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部 CTA -->
+  <view class="bottom-cta">
+    <view class="cta-button" bindtap="goToCourses">
+      <text class="cta-icon-text">👥</text>
+      <text class="cta-main-text">立即加入训练营</text>
+    </view>
+  </view>
+
+  <!-- 悬浮 CTA -->
+  <view class="float-cta {{showFloatCTA ? 'show' : ''}}" bindtap="goToCourses">
+    <view class="float-btn">
+      <text>🔥</text>
+      <text>免费开始 Day 1 体验</text>
+    </view>
+  </view>
+
+  <!-- 分享弹窗 -->
+  <shareModal 
+    show="{{showShareModal}}" 
+    userData="{{userData}}"
+    bind:close="closeShareModal"
+  />
+</view>

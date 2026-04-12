@@ -1,0 +1,204 @@
+<!-- subpackages/lesson/pages/detail/detail.wxml -->
+<view class="page">
+  <!-- 导航栏 -->
+  <view class="navbar">
+    <view class="nav-back" bindtap="navigateBack">
+      <text>‹</text>
+    </view>
+    <view class="nav-content">
+      <text class="nav-day">Day {{course.day}}</text>
+      <text class="nav-title">{{course.title}}</text>
+    </view>
+    <view class="nav-unlock" wx:if="{{course.status === 'locked'}}" bindtap="openPayModal">
+      <text>解锁</text>
+    </view>
+  </view>
+
+  <!-- 视频区域 -->
+  <view class="video-section">
+    <view class="video-container">
+      <image class="video-poster" src="{{course.thumbnail}}" mode="aspectFill" />
+      <view class="video-overlay" wx:if="{{!playing || course.status === 'locked'}}"></view>
+      
+      <!-- 锁定遮罩 -->
+      <view class="lock-overlay" wx:if="{{course.status === 'locked'}}">
+        <text class="lock-icon">🔒</text>
+        <text class="lock-title">试看已结束</text>
+        <text class="lock-sub">购买后解锁全部内容</text>
+        <view class="unlock-btn" bindtap="openPayModal">
+          <text>立即解锁 ¥9.9</text>
+        </view>
+      </view>
+
+      <!-- 试看提示 -->
+      <view class="preview-tip" wx:if="{{course.status === 'locked' && currentTime < 60}}">
+        <text>试看 {{60 - currentTime}}s</text>
+      </view>
+
+      <!-- 视频控制条 -->
+      <view class="video-controls">
+        <view class="progress-bar-container">
+          <view class="progress-bg"></view>
+          <view class="progress-fill" style="width: {{(currentTime / 900) * 100}}%"></view>
+          <view class="progress-thumb"></view>
+        </view>
+        <view class="controls-row">
+          <view class="control-btn" bindtap="seekBackward">
+            <text class="icon-rewind">◀◀</text>
+          </view>
+          <view class="control-btn play-toggle" bindtap="togglePlay">
+            <text class="icon-play {{playing ? 'hidden' : ''}}">▶</text>
+            <text class="icon-pause {{playing ? '' : 'hidden'}}">❚❚</text>
+          </view>
+          <view class="control-btn" bindtap="seekForward">
+            <text class="icon-forward">▶▶</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 字幕区域 -->
+  <view class="subtitle-section">
+
+    <view class="lang-switch">
+      <view class="lang-btn {{subtitleLang === 'zh' ? 'active' : ''}}" bindtap="switchLang" data-lang="zh">中文</view>
+      <view class="lang-btn {{subtitleLang === 'en' ? 'active' : ''}}" bindtap="switchLang" data-lang="en">English</view>
+    </view>
+    <scroll-view class="subtitle-list" scroll-y>
+      <block wx:for="{{subtitles}}" wx:key="id">
+        <view 
+          class="subtitle-item {{currentTime >= item.start && currentTime < item.end ? 'active' : ''}}"
+          data-time="{{item.start}}"
+          bindtap="onSubtitleTap"
+        >
+          <text class="sub-time">{{formatTime(item.start)}}</text>
+          <text class="sub-text">{{subtitleLang === 'en' ? item.en : item.zh}}</text>
+        </view>
+      </block>
+    </scroll-view>
+  </view>
+
+  <!-- 打卡区域 -->
+  <view class="checkin-section">
+    <!-- 锁定状态 -->
+    <view class="checkin-locked" wx:if="{{course.status === 'locked'}}">
+      <text class="lock-icon-large">🔒</text>
+      <text class="locked-title">解锁课程后可参与打卡</text>
+      <text class="locked-sub">购买后即可开始语音打卡练习</text>
+      <view class="unlock-checkin-btn" bindtap="openPayModal">
+        <text>解锁打卡功能</text>
+      </view>
+    </view>
+
+    <!-- 打卡内容 -->
+    <view class="checkin-content" wx:else>
+      <!-- 已打卡状态 -->
+      <view class="already-checked" wx:if="{{checkedIn && checkinState === 'idle'}}">
+        <view class="already-badge">
+          <text class="badge-text">✓</text>
+        </view>
+        <text class="already-title">今日已打卡 ✓</text>
+        <text class="already-sub">棒棒哒！明天继续加油 💪</text>
+        <view class="re-record-btn" bindtap="resetRecording">
+          <text>重新录制练习</text>
+        </view>
+      </view>
+
+      <!-- 空闲状态 -->
+      <view class="checkin-idle" wx:if="{{checkinState === 'idle' && !checkedIn}}">
+        <view class="idle-header">
+          <view class="header-line"></view>
+          <text class="idle-title">今日打卡练习</text>
+        </view>
+        <view class="prompt-box">
+          <text class="prompt-label">跟读练习：</text>
+          <text class="prompt-text">"Welcome to Cambridge Sports Centre, how can I help you today?"</text>
+        </view>
+        <view class="record-btn-wrap">
+          <view class="record-btn" catchtouchstart="startRecording" catchtouchend="stopRecording">
+            <text class="mic-icon">🎙</text>
+          </view>
+          <text class="record-hint">长按麦克风开始录音</text>
+        </view>
+      </view>
+
+      <!-- 录音中 -->
+      <view class="checkin-recording" wx:if="{{checkinState === 'recording'}}">
+        <view class="recording-visual">
+          <view class="ripple r1"></view>
+          <view class="ripple r2"></view>
+          <view class="ripple r3"></view>
+          <view class="record-btn recording">
+            <text class="mic-icon">🎙</text>
+          </view>
+        </view>
+        <view class="wave-bars">
+          <block wx:for="{{18}}" wx:key="index">
+            <view class="wave-bar"></view>
+          </block>
+        </view>
+        <text class="recording-time">{{formatTime(timer)}}</text>
+        <text class="recording-hint">松手停止录音</text>
+      </view>
+
+      <!-- 处理中 -->
+      <view class="checkin-processing" wx:if="{{checkinState === 'processing'}}">
+        <view class="cloud-icon">☁️</view>
+        <text class="processing-text">识别中...</text>
+      </view>
+
+      <!-- 识别完成 -->
+      <view class="checkin-recognized" wx:if="{{checkinState === 'recognized'}}">
+        <view class="audio-player">
+          <view class="play-btn-small">
+            <text>▶</text>
+          </view>
+          <view class="wave-progress">
+            <view class="wave-bg"></view>
+            <view class="wave-fill" style="width: 35%"></view>
+          </view>
+          <text class="audio-dur">0:42</text>
+        </view>
+        <view class="transcript-box">
+          <text class="transcript-label">📝 识别文本</text>
+          <text class="transcript-content">Welcome to Cambridge Sports Centre, how can I help you today?</text>
+        </view>
+        <view class="action-btns">
+          <view class="reset-btn" bindtap="resetRecording">
+            <text>↻ 重新录制</text>
+          </view>
+          <view class="submit-btn" bindtap="submitCheckin">
+            <text>✓ 提交打卡</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 提交中 -->
+      <view class="checkin-submitting" wx:if="{{checkinState === 'submitting'}}">
+        <view class="loading-spinner"></view>
+        <text class="submitting-text">提交中...</text>
+      </view>
+
+      <!-- 成功 -->
+      <view class="checkin-success" wx:if="{{checkinState === 'success'}}">
+        <view class="success-icon">
+          <text class="check">✓</text>
+        </view>
+        <text class="success-title">打卡成功！🎉</text>
+        <text class="success-sub">今日已完成第 5 天打卡</text>
+        <view class="streak-badge">
+          <text>🔥 连续打卡 5 天</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付弹窗 -->
+  <payModal 
+    show="{{showPayModal}}" 
+    course="{{course}}"
+    bind:close="closePayModal"
+    bind:success="onPaySuccess"
+  />
+</view>

@@ -1,0 +1,85 @@
+<!-- components/payModal.wxml -->
+<view class="pay-modal {{showPayModal ? 'show' : ''}}" wx:if="{{showPayModal}}">
+  <view class="modal-mask" bindtap="closePayModal"></view>
+  <view class="modal-content">
+    <view class="modal-handle"></view>
+    
+    <!-- 确认支付 -->
+    <view class="pay-confirm" wx:if="{{payState === 'confirm'}}">
+      <view class="modal-header">
+        <text class="modal-title">🔓 解锁课程</text>
+        <view class="close-btn" bindtap="closePayModal">
+          <text>✕</text>
+        </view>
+      </view>
+
+      <view class="course-info">
+        <image class="course-thumb" src="{{selectedCourse.thumbnail}}" mode="aspectFill" />
+        <view class="course-detail">
+          <text class="course-day">Day {{selectedCourse.day}}</text>
+          <text class="course-name">{{selectedCourse.title}}</text>
+          <text class="course-desc">{{selectedCourse.description}}</text>
+        </view>
+      </view>
+
+      <view class="plan-list">
+        <view class="plan-item {{selectedPlan === 'single' ? 'selected' : ''}}" data-plan="single" bindtap="selectPlan">
+          <view class="plan-content">
+            <text class="plan-name">单节解锁</text>
+            <text class="plan-desc">解锁当前课程</text>
+          </view>
+          <view class="plan-price">
+            <text class="price-current">¥9.9</text>
+            <text class="price-original">¥29.9</text>
+          </view>
+        </view>
+        <view class="plan-item {{selectedPlan === 'full' ? 'selected' : ''}}" data-plan="full" bindtap="selectPlan">
+          <view class="plan-badge">最划算</view>
+          <view class="plan-content">
+            <text class="plan-name">全营通关</text>
+            <text class="plan-desc">解锁全部21天课程</text>
+          </view>
+          <view class="plan-price">
+            <text class="price-current">¥98</text>
+            <text class="price-original">¥298</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="benefits">
+        <view class="benefit-item">
+          <text>⚡</text>
+          <text>即时解锁</text>
+        </view>
+        <view class="benefit-item">
+          <text>🛡</text>
+          <text>7天退款</text>
+        </view>
+        <view class="benefit-item">
+          <text>⭐</text>
+          <text>永久有效</text>
+        </view>
+      </view>
+
+      <view class="pay-btn" bindtap="handlePay">
+        <text>立即支付 {{selectedPlan === 'full' ? '¥98' : '¥9.9'}}</text>
+      </view>
+    </view>
+
+    <!-- 支付中 -->
+    <view class="pay-loading" wx:if="{{payState === 'paying'}}">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">支付中...</text>
+      <text class="loading-hint">请稍候</text>
+    </view>
+
+    <!-- 支付成功 -->
+    <view class="pay-success" wx:if="{{payState === 'success'}}">
+      <view class="success-icon">
+        <text class="check">✓</text>
+      </view>
+      <text class="success-text">支付成功！</text>
+      <text class="success-hint">课程已解锁，快去学习吧 🎉</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,152 @@
+<!-- pages/login/login.wxml -->
+<view class="login-page">
+  <!-- 浮动气泡 -->
+  <view class="bubble bubble-1"></view>
+  <view class="bubble bubble-2"></view>
+  <view class="bubble bubble-3"></view>
+  <view class="bubble bubble-4"></view>
+  <view class="bubble bubble-5"></view>
+  <view class="bubble bubble-6"></view>
+  <view class="bubble bubble-7"></view>
+  <view class="bubble bubble-8"></view>
+
+  <!-- 顶部区域 -->
+  <view class="hero-section">
+    <!-- App 图标 -->
+    <view class="app-icon-wrap">
+      <view class="app-icon-glow"></view>
+      <view class="app-icon">
+        <text class="headphones-icon">🎧</text>
+        <view class="app-badge">🎯</view>
+      </view>
+    </view>
+
+    <!-- App 名称 -->
+    <view class="app-title-wrap">
+      <text class="app-subtitle">IELTS · 雅思听力</text>
+      <text class="app-title">21天听力突破计划</text>
+      <text class="app-desc">从 5.5 到 7分+ · 专属你的备考路线</text>
+    </view>
+
+    <!-- 功能标签 -->
+    <view class="feature-pills">
+      <view class="feature-pill">
+        <text class="pill-icon">🎧</text>
+        <text class="pill-text">剑桥原版真题</text>
+      </view>
+      <view class="feature-pill">
+        <text class="pill-icon">📖</text>
+        <text class="pill-text">中英双语字幕</text>
+      </view>
+      <view class="feature-pill">
+        <text class="pill-icon">⚡</text>
+        <text class="pill-text">AI 语音打卡</text>
+      </view>
+    </view>
+
+    <!-- 社会证明 -->
+    <view class="social-proof">
+      <view class="avatar-stack">
+        <image class="stacked-avatar" src="https://images.unsplash.com/photo-1619431667975-e93b820cde63?w=48&q=80" mode="aspectFill" />
+        <image class="stacked-avatar" src="https://images.unsplash.com/photo-1773921403832-aaeba299e510?w=48&q=80" mode="aspectFill" />
+        <image class="stacked-avatar" src="https://images.unsplash.com/photo-1555570624-8f1a389fe8d7?w=48&q=80" mode="aspectFill" />
+      </view>
+      <view class="social-text">
+        <text class="social-main">12,847 位同学已在学习</text>
+        <text class="social-sub">平均提分 1.5 分 · 好评率 94%</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部操作区 -->
+  <view class="action-section">
+    <!-- 隐私提示 -->
+    <view class="privacy-notice">
+      <text class="shield-icon">🛡</text>
+      <text class="privacy-text">完善信息获得更好的学习体验</text>
+    </view>
+
+    <!-- 登录按钮 -->
+    <button class="wechat-login-btn" bindtap="onLoginPress" hover-class="btn-active">
+      <text class="login-btn-icon">🎧</text>
+      <text class="login-btn-text">立即加入</text>
+      <text class="arrow-icon">›</text>
+    </button>
+
+    <!-- 用户协议 -->
+    <text class="terms-text">登录即代表同意《用户协议》和《隐私政策》</text>
+
+    <!-- 跳过登录 -->
+    <button class="skip-btn" bindtap="onSkipLogin" hover-class="btn-active">暂不登录，先逛逛</button>
+  </view>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- 用户信息填写弹窗 -->
+  <!-- ══════════════════════════════════════════ -->
+  <view class="modal-overlay" wx:if="{{showAuthModal}}" bindtap="onCloseModal">
+    <view class="auth-sheet" catchtap="noop">
+      <!-- 表单填写状态 -->
+      <view class="auth-content form-content" wx:if="{{authStep === 'request'}}">
+        <view class="gradient-strip"></view>
+        <view class="handle"></view>
+
+        <!-- 标题 -->
+        <view class="form-header">
+          <text class="form-title">完善个人信息</text>
+          <text class="form-subtitle">让学习更个性化</text>
+        </view>
+
+        <!-- 头像上传 - 使用微信选择器 -->
+        <view class="form-item avatar-item">
+          <button class="avatar-upload-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" hover-class="btn-active">
+            <image class="avatar-preview" src="{{formData.avatar || 'https://images.unsplash.com/photo-1619431667975-e93b820cde63?w=200&q=80'}}" mode="aspectFill" />
+            <view class="avatar-edit-icon">📷</view>
+          </button>
+          <text class="avatar-hint">点击选择微信头像</text>
+        </view>
+
+        <!-- 昵称输入 - 使用微信昵称选择器 -->
+        <view class="form-item">
+          <view class="input-wrap">
+            <text class="input-icon">👤</text>
+            <input id="nickInput" class="nick-input" type="nickname" placeholder="点击获取微信昵称" placeholder-class="placeholder" value="{{formData.nickName}}" bindinput="onNickNameInput" bindblur="onNickNameBlur" />
+          </view>
+        </view>
+
+        <!-- 安全提示 -->
+        <view class="safety-note">
+          <text class="safety-icon">🛡</text>
+          <text class="safety-text">你的信息仅用于学习体验，不会分享给第三方</text>
+        </view>
+
+        <!-- 提交按钮 -->
+        <view class="form-actions">
+          <button class="cancel-btn" bindtap="onDeny" hover-class="btn-active">取消</button>
+          <button class="submit-btn" bindtap="onSubmitForm" hover-class="btn-active">立即加入</button>
+        </view>
+      </view>
+
+      <!-- loading 状态 -->
+      <view class="auth-content loading-content" wx:if="{{authStep === 'loading'}}">
+        <view class="loading-rings">
+          <view class="ring ring-outer"></view>
+          <view class="ring ring-inner"></view>
+          <text class="loading-wechat-icon">💬</text>
+        </view>
+        <view class="loading-text">
+          <text class="loading-title">正在加入{{loadingDots}}</text>
+          <text class="loading-sub">请稍候</text>
+        </view>
+      </view>
+
+      <!-- success 状态 -->
+      <view class="auth-content success-content" wx:if="{{authStep === 'success'}}">
+        <view class="success-icon-wrap">
+          <text class="success-icon">✓</text>
+        </view>
+        <text class="success-title">欢迎加入！🎉</text>
+        <text class="success-sub">即将跳转到课程首页</text>
+      </view>
+    </view>
+  </view>
+</view>

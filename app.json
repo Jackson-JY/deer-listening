@@ -1,0 +1,61 @@
+{
+  "lazyCodeLoading": "requiredComponents",
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/courses/courses",
+    "pages/profile/profile"
+  ],
+  "usingComponents": {
+    "loginTip": "/components/loginTip/loginTip"
+  },
+  "subPackages": [
+    {
+      "root": "subpackages/lesson",
+      "pages": [
+        "pages/detail/detail"
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/courses/courses": {
+      "network": "wifi",
+      "packages": ["subpackages/lesson"]
+    }
+  },
+  "tabBar": {
+    "color": "#BBBBBB",
+    "selectedColor": "#A8D8EA",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/courses/courses",
+        "text": "课程"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.record": {
+      "desc": "语音打卡需要使用麦克风"
+    }
+  },
+  "requiredPrivateInfos": ["chooseAddress"],
+  "window": {
+    "navigationBarTitleText": "雅思听力训练营",
+    "navigationBarBackgroundColor": "#FFB6C1",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FFF5F5",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
