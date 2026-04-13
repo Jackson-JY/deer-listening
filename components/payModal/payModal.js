@@ -1,4 +1,6 @@
 // components/payModal/payModal.js
+const { TIMERS } = require("../../config/constants.js");
+
 Component({
   properties: {
     show: {
@@ -42,8 +44,8 @@ Component({
             course: this.properties.course 
           });
           this.setData({ payState: "confirm", selectedPlan: "full" });
-        }, 1800);
-      }, 2000);
+        }, TIMERS.PAY_SUCCESS_DELAY);
+      }, TIMERS.PAY_PROCESS_DELAY);
     },
 
     // 重置状态（供父组件调用）

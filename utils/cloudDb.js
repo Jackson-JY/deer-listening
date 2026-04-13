@@ -6,17 +6,96 @@ function getDb() {
 }
 
 /**
- * 获取所有课程列表
+ * 获取所有课程列表（lecture 表）
  */
 function getCourses() {
-  return getDb().collection("courses").orderBy("day", "asc").get();
+  return getDb().collection("lecture").get();
 }
 
 /**
  * 根据ID获取课程详情
  */
 function getCourseById(id) {
-  return getDb().collection("courses").where({ id }).get();
+  return getDb().collection("lecture").where({ _id: id }).get();
+}
+
+/**
+ * 根据day获取课程详情
+ */
+function getCourseByDay(day) {
+  return getDb().collection("lecture").where({ day: Number(day) }).get();
+}
+
+/**
+ * 获取云存储文件的临时链接
+ * @param {string} fileName - 云存储文件名称或 fileID
+ * @returns {Promise<string>} - 临时下载链接
+ */
+function getCloudFileUrl(fileName) {
+  if (!fileName) return Promise.resolve("");
+  
+  // 检查是否是完整的 fileID（cloud:// 开头）
+  const fileId = fileName.startsWith("cloud://") ? fileName : fileName;
+  
+  return wx.cloud.getTempFileURL({
+    fileList: [fileId],
+  }).then(res => {
+    if (res.fileList && res.fileList[0]) {
+      // 检查是否有错误
+      if (res.fileList[0].status === 0) {
+        return res.fileList[0].tempFileURL || "";
+      } else {
+        console.warn("获取文件URL失败:", res.fileList[0].error);
+        return "";
+      }
+    }
+    return "";
+  }).catch(err => {
+    console.warn("获取云文件URL失败:", err);
+    return "";
+  });
+}
+
+/**
+ * 下载云存储文件（返回临时文件路径）
+ * @param {string} fileName - 云存储文件名称或 fileID
+ * @returns {Promise<string>} - 临时文件路径
+ */
+function downloadCloudFile(fileName) {
+  if (!fileName) return Promise.resolve("");
+  
+  console.log("downloadCloudFile 开始下载:", fileName);
+  
+  return wx.cloud.downloadFile({
+    fileID: fileName,
+  }).then(res => {
+    console.log("downloadCloudFile 返回:", res);
+    if (res.statusCode === 200) {
+      console.log("下载成功, tempFilePath:", res.tempFilePath);
+      return res.tempFilePath || "";
+    }
+    console.warn("下载文件失败, statusCode:", res.statusCode);
+    return "";
+  }).catch(err => {
+    console.error("下载云文件失败:", err);
+    return "";
+  });
+}
+
+/**
+ * 获取 SRT 字幕文件内容
+ * @param {string} srtFile - SRT 文件名
+ * @returns {Promise<Array>} - 字幕数组 [{start, end, text}]
+ */
+function getSrtContent(srtFile) {
+  if (!srtFile) return Promise.resolve([]);
+  
+  return wx.cloud.downloadFile({
+    fileID: srtFile,
+  }).then(res => {
+    // 返回文件临时路径，供后续处理
+    return res.tempFilePath || "";
+  }).catch(() => "");
 }
 
 /**
@@ -55,20 +134,6 @@ function getStats() {
 }
 
 /**
- * 更新课程状态（用于打卡后更新）
- */
-function updateCourseStatus(id, data) {
-  return getDb().collection("courses").where({ id }).update({ data });
-}
-
-/**
- * 获取打卡历史
- */
-function getCheckInHistory() {
-  return getDb().collection("checkInHistory").get();
-}
-
-/**
  * 获取用户信息（通过 openid）
  */
 function getUser(openid) {
@@ -76,6 +141,13 @@ function getUser(openid) {
     return Promise.resolve({ data: [] });
   }
   return getDb().collection("users").where({ openid }).get();
+}
+
+/**
+ * 获取打卡历史
+ */
+function getCheckInHistory() {
+  return getDb().collection("checkInHistory").get();
 }
 
 /**
@@ -110,8 +182,10 @@ function generateCalendarData() {
 }
 
 module.exports = {
+  getDb,
   getCourses,
   getCourseById,
+  getCourseByDay,
   getSubtitles,
   getReviews,
   getBanners,
@@ -119,7 +193,9 @@ module.exports = {
   getStats,
   getCheckInHistory,
   getUser,
-  updateCourseStatus,
   initData,
   generateCalendarData,
+  getCloudFileUrl,
+  downloadCloudFile,
+  getSrtContent,
 };

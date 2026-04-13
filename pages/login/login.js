@@ -1,5 +1,6 @@
 // pages/login/login.js
-const auth = require("../../utils/auth.js");
+const { getDb } = require("../../utils/cloudDb.js");
+const { TIMERS, MIN_NICKNAME_LENGTH, PAGES } = require("../../config/constants.js");
 
 Page({
   data: {
@@ -20,7 +21,10 @@ Page({
   // 定时器
   _dotsTimer: null,
 
-  onLoad(options) {
+  // 缓存 openid，避免重复调用云函数
+  _openid: "",
+
+  onLoad() {
     // 检查是否已登录，已登录则直接跳转
     const app = getApp();
     if (app.globalData.isLoggedIn) {
@@ -45,6 +49,7 @@ Page({
       const openid = res.result?.openid;
 
       if (openid) {
+        this._openid = openid; // 缓存 openid
         // 查询数据库是否有该用户
         return this._checkUserInDb(openid).then(userExists => {
           if (userExists) {
@@ -78,7 +83,7 @@ Page({
 
   // 检查用户是否已在数据库中
   _checkUserInDb(openid) {
-    return wx.cloud.database().collection("users").where({ openid }).count()
+    return getDb().collection("users").where({ openid }).count()
       .then(res => {
         return res.total > 0;
       })
@@ -91,7 +96,7 @@ Page({
   _loginWithExistingUser(openid) {
     const app = getApp();
 
-    wx.cloud.database().collection("users").where({ openid }).get()
+    getDb().collection("users").where({ openid }).get()
       .then(res => {
         if (res.data && res.data.length > 0) {
           const userData = res.data[0];
@@ -173,51 +178,35 @@ Page({
 
   // 提交表单
   onSubmitForm() {
-    // 直接从输入框获取最新昵称值
-    this._getNickNameInputValue().then(nickName => {
-      const { avatar } = this.data.formData;
+    const { avatar, nickName } = this.data.formData;
 
-      // 验证昵称
-      if (!nickName || nickName.trim().length === 0) {
-        wx.showToast({
-          title: "请输入昵称",
-          icon: "none"
-        });
-        return;
-      }
-
-      const trimmedNickName = nickName.trim();
-      if (trimmedNickName.length < 2) {
-        wx.showToast({
-          title: "昵称至少2个字符",
-          icon: "none"
-        });
-        return;
-      }
-
-      // 更新 formData
-      this.setData({
-        'formData.nickName': trimmedNickName
+    // 验证昵称
+    if (!nickName || nickName.trim().length === 0) {
+      wx.showToast({
+        title: "请输入昵称",
+        icon: "none"
       });
+      return;
+    }
 
-      // 显示加载状态
-      this.setData({ authStep: "loading" });
-      this._startDotsAnimation();
-
-      // 上传头像（如有）
-      this._uploadAvatar(avatar).then(avatarUrl => {
-        this._loginWithLocalUserInfo(avatarUrl, trimmedNickName);
-      }).catch(() => {
-        this._loginWithLocalUserInfo("", trimmedNickName);
+    const trimmedNickName = nickName.trim();
+    if (trimmedNickName.length < 2) {
+      wx.showToast({
+        title: "昵称至少2个字符",
+        icon: "none"
       });
-    });
-  },
+      return;
+    }
 
-  // 从输入框获取昵称值
-  _getNickNameInputValue() {
-    return new Promise((resolve) => {
-      const nickName = this.data.formData.nickName;
-      resolve(nickName ? nickName.trim() : "");
+    // 显示加载状态
+    this.setData({ authStep: "loading" });
+    this._startDotsAnimation();
+
+    // 上传头像（如有）
+    this._uploadAvatar(avatar).then(avatarUrl => {
+      this._loginWithLocalUserInfo(avatarUrl, trimmedNickName);
+    }).catch(() => {
+      this._loginWithLocalUserInfo("", trimmedNickName);
     });
   },
 
@@ -258,89 +247,65 @@ Page({
     });
   },
 
-  // 本地用户信息登录（不依赖数据库）
+  // 本地用户信息登录 - 复用缓存的 openid
   _loginWithLocalUserInfo(avatarUrl, nickName) {
     const app = getApp();
+    const openid = this._openid;
     
-    // 调用云函数获取 openid
-    wx.cloud.callFunction({
-      name: "login",
-    }).then(res => {
-      console.log("login 云函数返回:", res);
-      this._clearDotsTimer();
+    this._clearDotsTimer();
 
-      const openid = res.result?.openid;
-      
-      if (openid) {
-        // 保存登录状态
-        app.globalData.isLoggedIn = true;
-        app.globalData.openid = openid;
-        app.globalData.userInfo = {
-          avatar: avatarUrl,
-          name: nickName,
-          avatarUrl: avatarUrl,
-          nickName: nickName,
-        };
-
-        // 保存到本地存储
-        wx.setStorageSync("isLoggedIn", true);
-        wx.setStorageSync("openid", openid);
-        wx.setStorageSync("userInfo", app.globalData.userInfo);
-
-        this.setData({ authStep: "success" });
-
-        // 异步保存到数据库（不影响登录流程）
-        this._saveUserToDb(openid, avatarUrl, nickName);
-
-        // 延迟跳转
-        setTimeout(() => {
-          this.setData({ showAuthModal: false });
-          this.goToApp();
-        }, 1500);
-      } else {
-        throw new Error("获取 openid 失败");
-      }
-    }).catch(err => {
-      this._clearDotsTimer();
-      console.error("登录失败", err);
+    if (!openid) {
       wx.showToast({
         title: "登录失败，请重试",
         icon: "none",
       });
       this.setData({ showAuthModal: false, authStep: "request" });
-    });
+      return;
+    }
+
+    // 保存登录状态
+    app.globalData.isLoggedIn = true;
+    app.globalData.openid = openid;
+    app.globalData.userInfo = {
+      avatar: avatarUrl,
+      name: nickName,
+      avatarUrl: avatarUrl,
+      nickName: nickName,
+    };
+
+    // 保存到本地存储
+    wx.setStorageSync("isLoggedIn", true);
+    wx.setStorageSync("openid", openid);
+    wx.setStorageSync("userInfo", app.globalData.userInfo);
+
+    this.setData({ authStep: "success" });
+
+    // 保存新用户到数据库
+    this._saveUserToDb(openid, avatarUrl, nickName);
+
+    // 延迟跳转
+    setTimeout(() => {
+      this.setData({ showAuthModal: false });
+      this.goToApp();
+    }, 1500);
   },
 
-  // 异步保存用户到数据库
+  // 保存新用户到数据库
   _saveUserToDb(openid, avatarUrl, nickName) {
-    const db = wx.cloud.database();
-    
-    db.collection("users").where({ openid }).get().then(res => {
-      if (res.data && res.data.length > 0) {
-        // 用户已存在，更新信息
-        return db.collection("users").doc(res.data[0]._id).update({
-          data: {
-            avatar: avatarUrl || res.data[0].avatar,
-            name: nickName,
-            lastLogin: db.serverDate(),
-          },
-        });
-      } else {
-        // 创建新用户
-        return db.collection("users").add({
-          data: {
-            openid,
-            avatar: avatarUrl || "",
-            name: nickName,
-            streak: 0,
-            completed: 0,
-            totalScore: 0,
-            isAdmin: false,
-            createdAt: db.serverDate(),
-            lastLogin: db.serverDate(),
-          },
-        });
-      }
+    const db = getDb();
+
+    db.collection("users").add({
+      data: {
+        openid,
+        avatar: avatarUrl || "",
+        name: nickName,
+        streak: 0,
+        completed: 0,
+        totalScore: 0,
+        isAdmin: false,
+        createdAt: db.serverDate(),
+        lastLogin: db.serverDate(),
+      },
     }).catch(err => {
       console.error("保存用户信息到数据库失败", err);
     });
@@ -373,7 +338,7 @@ Page({
     this._dotsTimer = setInterval(() => {
       dots = dots.length >= 3 ? "" : dots + ".";
       this.setData({ loadingDots: dots });
-    }, 400);
+    }, TIMERS.LOADING_DOTS);
   },
 
   _clearDotsTimer() {

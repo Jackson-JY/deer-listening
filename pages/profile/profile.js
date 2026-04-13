@@ -1,6 +1,8 @@
 // pages/profile/profile.js
 const app = getApp();
 const cloudDb = require("../../utils/cloudDb.js");
+const auth = require("../../utils/auth.js");
+const { CALENDAR_DAYS, CALENDAR_CELLS, INVITE_LINK, PAGES } = require("../../config/constants.js");
 
 Page({
   data: {
@@ -12,23 +14,12 @@ Page({
   },
 
   onLoad() {
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: "/pages/login/login",
-      });
-      return;
-    }
+    if (!auth.checkLoginAndRedirect()) return;
     this.loadData();
   },
 
   onShow() {
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: "/pages/login/login",
-      });
-      return;
-    }
-    // 仅首次加载时请求数据
+    if (!auth.checkLoginAndRedirect()) return;
     if (!this.data.user) {
       this.loadData();
     }
@@ -41,28 +32,7 @@ Page({
 
   async loadData() {
     try {
-      const openid = app.globalData.openid;
-      const userInfo = app.globalData.userInfo;
-      
-      // 优先使用全局用户信息，否则从数据库获取
-      let user = userInfo || null;
-      
-      if (openid && !user) {
-        const userRes = await cloudDb.getUser(openid);
-        user = userRes.data[0] || null;
-      }
-
-      // 如果仍然没有用户数据，使用全局信息创建默认用户
-      if (!user && userInfo) {
-        user = {
-          name: userInfo.name || userInfo.nickName || "新用户",
-          avatar: userInfo.avatar || userInfo.avatarUrl || "",
-          streak: 0,
-          completed: 0,
-          totalScore: 0,
-          isAdmin: false,
-        };
-      }
+      const user = await auth.getUserInfo();
 
       let checkInRes = { data: [] };
       try {
@@ -80,20 +50,6 @@ Page({
       });
     } catch (e) {
       console.error("加载数据失败", e);
-      // 出错时使用全局用户信息作为后备
-      const userInfo = app.globalData.userInfo;
-      if (userInfo) {
-        this.setData({
-          user: {
-            name: userInfo.name || userInfo.nickName || "新用户",
-            avatar: userInfo.avatar || userInfo.avatarUrl || "",
-            streak: 0,
-            completed: 0,
-            totalScore: 0,
-            isAdmin: false,
-          },
-        });
-      }
     }
   },
 
@@ -103,12 +59,12 @@ Page({
     today.setHours(0, 0, 0, 0);
 
     const firstDay = new Date(today);
-    firstDay.setDate(today.getDate() - 48);
+    firstDay.setDate(today.getDate() - CALENDAR_DAYS);
     firstDay.setDate(firstDay.getDate() - firstDay.getDay());
 
     let currentWeek = [];
 
-    for (let i = 0; i < 49; i++) {
+    for (let i = 0; i < CALENDAR_CELLS; i++) {
       const date = new Date(firstDay);
       date.setDate(firstDay.getDate() + i);
 

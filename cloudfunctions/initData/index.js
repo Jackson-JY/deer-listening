@@ -142,90 +142,6 @@ async function initReviews() {
   console.log("Reviews 初始化完成");
 }
 
-// 初始化课程数据（字段匹配 courses.wxml）
-async function initCourses() {
-  const res = await db.collection("courses").count();
-  if (res.total > 0) {
-    console.log("Courses 已存在，跳过初始化");
-    return;
-  }
-  
-  const courses = [];
-  for (let i = 1; i <= 21; i++) {
-    const status = i === 1 ? "unlocked" : i <= 3 ? "inProgress" : "locked";
-    const duration = "15:00";
-    courses.push({
-      id: i,
-      day: i,
-      title: `Day ${i} - ${getDayTitle(i)}`,
-      thumbnail: `https://images.unsplash.com/photo-${getImageId(i)}?w=400&q=80`,
-      status: status,
-      isFree: i === 1,
-      duration: duration,
-      progress: status === "completed" ? 100 : status === "inProgress" ? 50 : 0,
-      checkedIn: i === 1,
-      price: 9.9,
-    });
-  }
-  
-  await db.collection("courses").add({ data: courses });
-  console.log("Courses 初始化完成，共 21 节课");
-}
-
-function getDayTitle(day) {
-  const titles = [
-    "雅思听力入门",
-    "地图类题型精讲",
-    "匹配题技巧",
-    "选择题秒杀法",
-    "填空题突破",
-    "流程图详解",
-    "表格填写技巧",
-    "简答题策略",
-    "信息定位法",
-    "同义替换规律",
-    "信号词捕捉",
-    "数字听力技巧",
-    "日期时间表达",
-    "地点方位词汇",
-    "人物描述技巧",
-    "学术场景词汇",
-    "生活场景词汇",
-    "新闻听力要点",
-    "讲座听力方法",
-    "考试技巧总结",
-    "模拟测试训练",
-  ];
-  return titles[(day - 1) % titles.length];
-}
-
-function getImageId(day) {
-  const ids = [
-    "1434030216411-0b793f4b4173",
-    "1522202176988-66273c2fd55f",
-    "1523580494863-6f3031224c94",
-    "1546410531-bb4caa6b964d",
-    "1454165804606-c3d57bc86b40",
-    "1513475382585-d06e58bcb223",
-    "1516321318423-f06f85e504b3",
-    "1488190211105-8b0e65b80b4e",
-    "1497633762265-d9d459c5a3e1",
-    "1513258496099-48167924b9f5",
-    "1503676260728-1c00da094a0b",
-    "1485546246425-9e9b5aabe366",
-    "1509062522246-37551379221c",
-    "1497633762265-d9d459c5a3e1",
-    "1523050854058-8df90110c9f1",
-    "1519452575417-564c1401ecc",
-    "1516321318423-f06f85e504b3",
-    "1509062522246-37551379221c",
-    "1513258496099-48167924b9f5",
-    "1485546246425-9e9b5aabe366",
-    "1434030216411-0b793f4b4173",
-  ];
-  return ids[(day - 1) % ids.length];
-}
-
 // 初始化字幕数据
 async function initSubtitles() {
   const res = await db.collection("subtitles").count();
@@ -304,9 +220,7 @@ exports.main = async (event, context) => {
     await initSellingPoints();
     await initStats();
     await initReviews();
-    await initCourses();
-    await initSubtitles();
-    await initCheckInHistory();
+    // 课程数据使用 lecture 表，不再初始化 courses 表
     
     return {
       success: true,

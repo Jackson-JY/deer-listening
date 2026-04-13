@@ -124,31 +124,6 @@ async function fixReviews() {
   console.log(`修复了 ${data.length} 条 Reviews 数据`);
 }
 
-// 修复 Courses
-async function fixCourses() {
-  const { data } = await db.collection("courses").get();
-  
-  for (const item of data) {
-    const updates = {};
-    
-    // 添加 duration 字段
-    if (!item.duration) {
-      updates.duration = "15:00";
-    }
-    // 添加 progress 字段
-    if (!item.progress) {
-      if (item.status === "completed") updates.progress = 100;
-      else if (item.status === "inProgress") updates.progress = 50;
-      else updates.progress = 0;
-    }
-    
-    if (Object.keys(updates).length > 0) {
-      await db.collection("courses").doc(item._id).update({ data: updates });
-    }
-  }
-  console.log(`修复了 ${data.length} 条 Courses 数据`);
-}
-
 // 主入口
 exports.main = async (event, context) => {
   try {
@@ -158,7 +133,7 @@ exports.main = async (event, context) => {
     await fixSellingPoints();
     await fixStats();
     await fixReviews();
-    await fixCourses();
+    // 课程数据使用 lecture 表，不再修复 courses 表
     
     return {
       success: true,

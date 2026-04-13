@@ -1,6 +1,8 @@
 // pages/home/home.js
 const app = getApp();
 const cloudDb = require("../../utils/cloudDb.js");
+const auth = require("../../utils/auth.js");
+const { TIMERS, FLOAT_CTA_SCROLL_TOP, SHARE_TITLE, SHARE_PATH } = require("../../config/constants.js");
 
 Page({
   data: {
@@ -18,28 +20,14 @@ Page({
   },
 
   onLoad() {
-    // 检查登录状态，未登录则跳转登录页（游客模式也允许浏览）
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: "/pages/login/login",
-      });
-      return;
-    }
-    // 仅首次加载时请求数据
+    if (!auth.checkLoginAndRedirect()) return;
     if (!this.data.banners.length) {
       this.loadData();
     }
   },
 
   onShow() {
-    // 每次显示页面检查登录状态
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: "/pages/login/login",
-      });
-      return;
-    }
-    // 下拉刷新时重新加载
+    if (!auth.checkLoginAndRedirect()) return;
   },
 
   onLoginSuccess() {
@@ -57,7 +45,6 @@ Page({
 
   async loadData() {
     try {
-      // 并行查询所有数据
       const [bannersRes, sellingPointsRes, statsRes, reviewsRes, coursesRes] = await Promise.all([
         cloudDb.getBanners(),
         cloudDb.getSellingPoints(),
@@ -66,32 +53,18 @@ Page({
         cloudDb.getCourses(),
       ]);
 
-      const openid = app.globalData.openid;
-      const userInfo = app.globalData.userInfo;
-      
-      // 优先使用全局用户信息，否则从数据库获取
-      let userData = null;
-      
-      if (userInfo) {
-        userData = {
-          name: userInfo.name || userInfo.nickName || "新用户",
-          avatar: userInfo.avatar || userInfo.avatarUrl || "",
-        };
-      } else if (openid) {
-        try {
-          const userRes = await cloudDb.getUser(openid);
-          userData = userRes.data[0] || null;
-        } catch (e) {
-          console.warn("获取用户数据失败", e);
-        }
-      }
+      const userData = await auth.getUserInfo();
 
       this.setData({
         banners: bannersRes.data || [],
         sellingPoints: sellingPointsRes.data || [],
         stats: statsRes.data || [],
         reviews: reviewsRes.data || [],
-        previewCourses: (coursesRes.data || []).slice(0, 3),
+        previewCourses: (coursesRes.data || []).slice(0, 3).map((course, index) => ({
+          ...course,
+          id: course._id || `course_${index}`,
+          day: course.day || (index + 1),
+        })),
         userData,
       });
     } catch (e) {
@@ -100,7 +73,7 @@ Page({
   },
 
   onPageScroll(e) {
-    const showFloatCTA = e.scrollTop > 200;
+    const showFloatCTA = e.scrollTop > FLOAT_CTA_SCROLL_TOP;
     if (showFloatCTA !== this.data.showFloatCTA) {
       this.setData({ showFloatCTA });
     }
@@ -114,27 +87,11 @@ Page({
       this.setData({
         bannerIndex: (this.data.bannerIndex + 1) % len,
       });
-    }, 3800);
+    }, TIMERS.BANNER_SWITCH);
   },
 
   changeBanner(e) {
     const index = e.currentTarget.dataset.index;
-    this.setData({ bannerIndex: index });
-    this.startBannerTimer();
-  },
-
-  prevBanner() {
-    const len = this.data.banners.length;
-    if (len === 0) return;
-    const index = this.data.bannerIndex > 0 ? this.data.bannerIndex - 1 : len - 1;
-    this.setData({ bannerIndex: index });
-    this.startBannerTimer();
-  },
-
-  nextBanner() {
-    const len = this.data.banners.length;
-    if (len === 0) return;
-    const index = this.data.bannerIndex < len - 1 ? this.data.bannerIndex + 1 : 0;
     this.setData({ bannerIndex: index });
     this.startBannerTimer();
   },
@@ -147,7 +104,7 @@ Page({
       this.setData({
         reviewIndex: (this.data.reviewIndex + 1) % len,
       });
-    }, 3200);
+    }, TIMERS.REVIEW_SWITCH);
   },
 
   changeReview(e) {
@@ -171,9 +128,14 @@ Page({
       this.setData({ showLoginTip: true });
       return;
     }
-    const id = e.currentTarget.dataset.id;
+    const course = e.currentTarget.dataset.course;
+    console.log("点击课程:", course);
+    console.log("course.day:", course.day);
+    const id = course.id || course._id;
+    const day = course.day || 1;
+    console.log("跳转参数 - id:", id, "day:", day);
     wx.navigateTo({
-      url: `/subpackages/lesson/pages/detail/detail?id=${id}`,
+      url: `/subpackages/lesson/pages/detail/detail?id=${id}&day=${day}`,
     });
   },
 
@@ -187,8 +149,8 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: "雅思听力21天突破计划",
-      path: "/pages/home/home",
+      title: SHARE_TITLE,
+      path: SHARE_PATH,
       imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&q=80",
     };
   },

@@ -17,8 +17,24 @@
   <!-- 视频区域 -->
   <view class="video-section">
     <view class="video-container">
-      <image class="video-poster" src="{{course.thumbnail}}" mode="aspectFill" />
-      <view class="video-overlay" wx:if="{{!playing || course.status === 'locked'}}"></view>
+      <!-- 优先使用云存储视频 -->
+      <video 
+        wx:if="{{videoUrl && course.status !== 'locked'}}"
+        id="videoPlayer"
+        class="video-player"
+        src="{{videoUrl}}"
+        controls
+        show-center-play-btn
+        enable-progress-gesture
+        bindtimeupdate="onVideoTimeUpdate"
+        bindplay="onVideoPlay"
+        bindpause="onVideoPause"
+      />
+      <!-- 锁定状态显示占位 -->
+      <view wx:else class="video-placeholder">
+        <text class="placeholder-icon">📹</text>
+        <text class="placeholder-text">{{course.status === 'locked' ? '购买后解锁视频' : '视频加载中...'}}</text>
+      </view>
       
       <!-- 锁定遮罩 -->
       <view class="lock-overlay" wx:if="{{course.status === 'locked'}}">
@@ -34,48 +50,36 @@
       <view class="preview-tip" wx:if="{{course.status === 'locked' && currentTime < 60}}">
         <text>试看 {{60 - currentTime}}s</text>
       </view>
-
-      <!-- 视频控制条 -->
-      <view class="video-controls">
-        <view class="progress-bar-container">
-          <view class="progress-bg"></view>
-          <view class="progress-fill" style="width: {{(currentTime / 900) * 100}}%"></view>
-          <view class="progress-thumb"></view>
-        </view>
-        <view class="controls-row">
-          <view class="control-btn" bindtap="seekBackward">
-            <text class="icon-rewind">◀◀</text>
-          </view>
-          <view class="control-btn play-toggle" bindtap="togglePlay">
-            <text class="icon-play {{playing ? 'hidden' : ''}}">▶</text>
-            <text class="icon-pause {{playing ? '' : 'hidden'}}">❚❚</text>
-          </view>
-          <view class="control-btn" bindtap="seekForward">
-            <text class="icon-forward">▶▶</text>
-          </view>
-        </view>
-      </view>
     </view>
   </view>
 
   <!-- 字幕区域 -->
-  <view class="subtitle-section">
-
+  <view class="subtitle-section" wx:if="{{course.enSubtitles.length > 0 || course.zhSubtitles.length > 0}}">
     <view class="lang-switch">
       <view class="lang-btn {{subtitleLang === 'zh' ? 'active' : ''}}" bindtap="switchLang" data-lang="zh">中文</view>
       <view class="lang-btn {{subtitleLang === 'en' ? 'active' : ''}}" bindtap="switchLang" data-lang="en">English</view>
     </view>
-    <scroll-view class="subtitle-list" scroll-y>
+    <scroll-view 
+      id="subtitleScroll"
+      class="subtitle-list" 
+      scroll-y
+      scroll-with-animation
+      scroll-into-view="{{currentSubId}}"
+    >
       <block wx:for="{{subtitles}}" wx:key="id">
         <view 
+          id="sub_{{item.id}}"
           class="subtitle-item {{currentTime >= item.start && currentTime < item.end ? 'active' : ''}}"
           data-time="{{item.start}}"
           bindtap="onSubtitleTap"
         >
           <text class="sub-time">{{formatTime(item.start)}}</text>
-          <text class="sub-text">{{subtitleLang === 'en' ? item.en : item.zh}}</text>
+          <text class="sub-text">{{item.en}}</text>
         </view>
       </block>
+      <view class="empty-subtitle" wx:if="{{subtitles.length === 0}}">
+        <text>字幕加载中...</text>
+      </view>
     </scroll-view>
   </view>
 

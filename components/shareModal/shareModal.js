@@ -1,4 +1,6 @@
 // components/shareModal/shareModal.js
+const { INVITE_LINK, SHARE_TITLE, SHARE_PATH, TIMERS } = require("../../config/constants.js");
+
 Component({
   properties: {
     show: {
@@ -29,13 +31,13 @@ Component({
     // 复制链接
     copyLink() {
       wx.setClipboardData({
-        data: "https://ieltscamp.example.com/invite/xxx",
+        data: INVITE_LINK,
         success: () => {
           this.setData({ copied: true });
           this.triggerEvent('copied');
           setTimeout(() => {
             this.closeModal();
-          }, 2000);
+          }, TIMERS.COPY_SUCCESS_DELAY);
         }
       });
     },
@@ -43,8 +45,8 @@ Component({
     // 分享给好友
     onShareAppMessage() {
       return {
-        title: "雅思听力21天突破计划",
-        path: "/pages/home/home",
+        title: SHARE_TITLE,
+        path: SHARE_PATH,
         imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&q=80",
       };
     }

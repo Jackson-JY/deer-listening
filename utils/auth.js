@@ -48,6 +48,46 @@ function setLoginState(isLoggedIn, openid) {
 }
 
 /**
+ * 检查登录状态并重定向到登录页
+ * @param {string} loginPage - 登录页面路径，默认 /pages/login/login
+ * @returns {boolean} - 是否已登录
+ */
+function checkLoginAndRedirect(loginPage = "/pages/login/login") {
+  const app = getApp();
+  if (!app.globalData.isLoggedIn) {
+    wx.redirectTo({ url: loginPage });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 获取用户信息（优先从全局数据，否则从数据库）
+ * @returns {Promise<object|null>}
+ */
+function getUserInfo() {
+  const app = getApp();
+  const { openid, userInfo } = app.globalData;
+
+  if (userInfo) {
+    return Promise.resolve({
+      name: userInfo.name || userInfo.nickName || "新用户",
+      avatar: userInfo.avatar || userInfo.avatarUrl || "",
+      streak: userInfo.streak || 0,
+      completed: userInfo.completed || 0,
+      totalScore: userInfo.totalScore || 0,
+      isAdmin: userInfo.isAdmin || false,
+    });
+  }
+
+  if (openid) {
+    return getUser(openid).then(res => res.data[0] || null);
+  }
+
+  return Promise.resolve(null);
+}
+
+/**
  * 获取或创建用户记录
  * @param {string} openid - 用户openid
  * @param {object} userInfo - 用户信息 { avatarUrl, nickName, phoneNumber }
@@ -165,12 +205,27 @@ function logout() {
   wx.removeStorageSync("userInfo");
 }
 
+/**
+ * 通过 openid 获取用户记录
+ * @param {string} openid
+ * @returns {Promise<{data: Array}>}
+ */
+function getUser(openid) {
+  if (!openid) {
+    return Promise.resolve({ data: [] });
+  }
+  return getDb().collection("users").where({ openid }).get();
+}
+
 module.exports = {
   checkLogin,
   cloudLogin,
   getLoginState,
   setLoginState,
   getOrCreateUser,
+  getUser,
   wxLogin,
   logout,
+  checkLoginAndRedirect,
+  getUserInfo,
 };
