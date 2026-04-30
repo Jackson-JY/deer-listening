@@ -32,14 +32,24 @@ Page({
 
   async loadData() {
     try {
-      const user = await auth.getUserInfo();
+      let user = await auth.getUserInfo();
+
+      // 如果头像字段是 cloud:// 开头的 fileID，转换为临时 URL
+      if (user && user.avatar && user.avatar.startsWith("cloud://")) {
+        try {
+          const urlRes = await wx.cloud.getTempFileURL({
+            fileList: [user.avatar]
+          });
+          if (urlRes.fileList && urlRes.fileList[0] && urlRes.fileList[0].tempFileURL) {
+            user = { ...user, avatar: urlRes.fileList[0].tempFileURL };
+          }
+        } catch (e) {}
+      }
 
       let checkInRes = { data: [] };
       try {
         checkInRes = await cloudDb.getCheckInHistory();
-      } catch (e) {
-        console.warn("获取打卡历史失败", e);
-      }
+      } catch (e) {}
 
       const calendarData = cloudDb.generateCalendarData();
 
@@ -49,7 +59,6 @@ Page({
         calendarWeeks: this.buildCalendarWeeks(calendarData),
       });
     } catch (e) {
-      console.error("加载数据失败", e);
     }
   },
 

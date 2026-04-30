@@ -45,7 +45,6 @@ Page({
     wx.cloud.callFunction({
       name: "login",
     }).then(res => {
-      console.log("login 云函数返回:", res);
       const openid = res.result?.openid;
 
       if (openid) {
@@ -69,9 +68,8 @@ Page({
       } else {
         throw new Error("获取 openid 失败");
       }
-    }).catch(err => {
+    }).catch(() => {
       this._clearDotsTimer();
-      console.error("登录失败", err);
       // 即使失败也显示表单
       this.setData({
         showAuthModal: true,
@@ -103,7 +101,8 @@ Page({
           app.globalData.isLoggedIn = true;
           app.globalData.openid = openid;
           app.globalData.userInfo = {
-            avatar: userData.avatar || "",
+            avatar: userData.avatar || "",  // 可能仍是 fileID
+            avatarFileId: userData.avatar || "",
             name: userData.name || "",
             avatarUrl: userData.avatar || "",
             nickName: userData.name || "",
@@ -123,8 +122,7 @@ Page({
           });
         }
       })
-      .catch(err => {
-        console.error("获取用户信息失败", err);
+      .catch(() => {
         // 获取失败也显示表单
         this.setData({
           showAuthModal: true,
@@ -150,7 +148,6 @@ Page({
 
   // 选择头像 - 使用微信头像选择器
   onChooseAvatar(e) {
-    console.log("选择头像回调:", e.detail);
     const avatarUrl = e.detail.avatarUrl;
     if (avatarUrl) {
       this.setData({
@@ -210,7 +207,7 @@ Page({
     });
   },
 
-  // 上传头像到云存储
+  // 上传头像到云存储，返回 fileID
   _uploadAvatar(filePath) {
     return new Promise((resolve, reject) => {
       if (!filePath) {
@@ -226,21 +223,11 @@ Page({
         cloudPath,
         filePath,
         success: (res) => {
-          console.log("头像上传成功:", res.fileID);
-          // 获取临时链接
-          wx.cloud.getTempFileURL({
-            fileList: [res.fileID],
-            success: (urlRes) => {
-              resolve(urlRes.fileList[0].tempFileURL);
-            },
-            fail: () => {
-              // 返回云存储的 fileID 作为临时链接
-              resolve(res.fileID);
-            }
-          });
+          // 直接返回 fileID，不获取临时 URL
+          // 读取时再动态转换
+          resolve(res.fileID);
         },
         fail: (err) => {
-          console.error("头像上传失败:", err);
           reject(err);
         }
       });
@@ -306,8 +293,7 @@ Page({
         createdAt: db.serverDate(),
         lastLogin: db.serverDate(),
       },
-    }).catch(err => {
-      console.error("保存用户信息到数据库失败", err);
+    }).catch(() => {
     });
   },
 

@@ -65,26 +65,42 @@ function checkLoginAndRedirect(loginPage = "/pages/login/login") {
  * 获取用户信息（优先从全局数据，否则从数据库）
  * @returns {Promise<object|null>}
  */
-function getUserInfo() {
+async function getUserInfo() {
   const app = getApp();
   const { openid, userInfo } = app.globalData;
 
+  let result = null;
+
   if (userInfo) {
-    return Promise.resolve({
+    result = {
       name: userInfo.name || userInfo.nickName || "新用户",
       avatar: userInfo.avatar || userInfo.avatarUrl || "",
+      avatarFileId: userInfo.avatarFileId || userInfo.avatar || "",
       streak: userInfo.streak || 0,
       completed: userInfo.completed || 0,
       totalScore: userInfo.totalScore || 0,
       isAdmin: userInfo.isAdmin || false,
-    });
+    };
+  } else if (openid) {
+    const res = await getUser(openid);
+    result = res.data[0] || null;
   }
 
-  if (openid) {
-    return getUser(openid).then(res => res.data[0] || null);
+  // 如果 avatar 是 cloud:// 开头的 fileID，转换为临时 URL
+  if (result && result.avatar && result.avatar.startsWith("cloud://")) {
+    try {
+      const urlRes = await wx.cloud.getTempFileURL({
+        fileList: [result.avatar]
+      });
+      if (urlRes.fileList && urlRes.fileList[0] && urlRes.fileList[0].tempFileURL) {
+        result.avatar = urlRes.fileList[0].tempFileURL;
+      }
+    } catch (e) {
+      console.warn("获取头像临时URL失败", e);
+    }
   }
 
-  return Promise.resolve(null);
+  return result;
 }
 
 /**
@@ -126,8 +142,7 @@ function getOrCreateUser(openid, userInfo = {}) {
         }).then(() => ({
           ...existingUser,
           ...updateData,
-        })).catch(err => {
-          console.error("更新用户信息失败", err);
+        })).catch(() => {
           return existingUser;
         });
       }

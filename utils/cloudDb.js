@@ -1,5 +1,38 @@
 // utils/cloudDb.js - 云数据库数据访问层
 
+// 视频/文件缓存（内存缓存，重启小程序后失效）
+const fileCache = {};
+
+/**
+ * 获取缓存的文件路径
+ * @param {string} key - 文件标识
+ * @returns {string|null} - 缓存的文件路径，不存在则返回 null
+ */
+function getCachedFile(key) {
+  return fileCache[key] || null;
+}
+
+/**
+ * 缓存文件路径
+ * @param {string} key - 文件标识
+ * @param {string} path - 文件路径
+ */
+function cacheFile(key, path) {
+  fileCache[key] = path;
+}
+
+/**
+ * 清理文件缓存
+ * @param {string} key - 缓存key，默认为空表示清理所有
+ */
+function clearFileCache(key) {
+  if (key) {
+    delete fileCache[key];
+  } else {
+    Object.keys(fileCache).forEach(k => delete fileCache[k]);
+  }
+}
+
 // 获取数据库实例（延迟初始化，确保 wx.cloud.init() 已执行）
 function getDb() {
   return wx.cloud.database();
@@ -44,14 +77,10 @@ function getCloudFileUrl(fileName) {
       // 检查是否有错误
       if (res.fileList[0].status === 0) {
         return res.fileList[0].tempFileURL || "";
-      } else {
-        console.warn("获取文件URL失败:", res.fileList[0].error);
-        return "";
       }
     }
     return "";
-  }).catch(err => {
-    console.warn("获取云文件URL失败:", err);
+  }).catch(() => {
     return "";
   });
 }
@@ -59,25 +88,29 @@ function getCloudFileUrl(fileName) {
 /**
  * 下载云存储文件（返回临时文件路径）
  * @param {string} fileName - 云存储文件名称或 fileID
+ * @param {boolean} useCache - 是否使用缓存，默认 true
  * @returns {Promise<string>} - 临时文件路径
  */
-function downloadCloudFile(fileName) {
+function downloadCloudFile(fileName, useCache = true) {
   if (!fileName) return Promise.resolve("");
   
-  console.log("downloadCloudFile 开始下载:", fileName);
+  // 检查缓存
+  if (useCache && fileCache[fileName]) {
+    return Promise.resolve(fileCache[fileName]);
+  }
   
   return wx.cloud.downloadFile({
     fileID: fileName,
   }).then(res => {
-    console.log("downloadCloudFile 返回:", res);
-    if (res.statusCode === 200) {
-      console.log("下载成功, tempFilePath:", res.tempFilePath);
-      return res.tempFilePath || "";
+    if (res.statusCode === 200 && res.tempFilePath) {
+      // 存入缓存
+      if (useCache) {
+        fileCache[fileName] = res.tempFilePath;
+      }
+      return res.tempFilePath;
     }
-    console.warn("下载文件失败, statusCode:", res.statusCode);
     return "";
-  }).catch(err => {
-    console.error("下载云文件失败:", err);
+  }).catch(() => {
     return "";
   });
 }
@@ -198,4 +231,7 @@ module.exports = {
   getCloudFileUrl,
   downloadCloudFile,
   getSrtContent,
+  clearFileCache,
+  getCachedFile,
+  cacheFile,
 };

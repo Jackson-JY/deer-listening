@@ -17,7 +17,7 @@
   <!-- 视频区域 -->
   <view class="video-section">
     <view class="video-container">
-      <!-- 优先使用云存储视频 -->
+      <!-- 视频播放 -->
       <video 
         wx:if="{{videoUrl && course.status !== 'locked'}}"
         id="videoPlayer"
@@ -29,7 +29,19 @@
         bindtimeupdate="onVideoTimeUpdate"
         bindplay="onVideoPlay"
         bindpause="onVideoPause"
+        bindwaiting="onVideoWaiting"
+        binderror="onVideoError"
       />
+      
+      <!-- 视频加载中 -->
+      <view wx:elif="{{videoLoading && course.status !== 'locked'}}" class="video-loading">
+        <view class="loading-spinner-video"></view>
+        <text class="loading-text">视频加载中 {{downloadProgress}}%</text>
+        <view class="loading-progress">
+          <view class="progress-fill" style="width: {{downloadProgress}}%"></view>
+        </view>
+      </view>
+      
       <!-- 锁定状态显示占位 -->
       <view wx:else class="video-placeholder">
         <text class="placeholder-icon">📹</text>
@@ -54,10 +66,13 @@
   </view>
 
   <!-- 字幕区域 -->
-  <view class="subtitle-section" wx:if="{{course.enSubtitles.length > 0 || course.zhSubtitles.length > 0}}">
-    <view class="lang-switch">
-      <view class="lang-btn {{subtitleLang === 'zh' ? 'active' : ''}}" bindtap="switchLang" data-lang="zh">中文</view>
-      <view class="lang-btn {{subtitleLang === 'en' ? 'active' : ''}}" bindtap="switchLang" data-lang="en">English</view>
+  <view class="subtitle-section" wx:if="{{subtitles.length > 0}}">
+    <view class="subtitle-header">
+      <text class="subtitle-count">共 {{subtitles.length}} 条</text>
+      <view class="zh-toggle {{showZhSubtitle ? 'active' : ''}}" bindtap="toggleZhSubtitle" wx:if="{{hasZhSubtitle}}">
+        <text class="zh-icon">中</text>
+        <text class="zh-label">{{showZhSubtitle ? '关闭中文' : '显示中文'}}</text>
+      </view>
     </view>
     <scroll-view 
       id="subtitleScroll"
@@ -73,8 +88,11 @@
           data-time="{{item.start}}"
           bindtap="onSubtitleTap"
         >
+          <view class="sub-content">
+            <text class="sub-text sub-en">{{item.en}}</text>
+            <text class="sub-text sub-zh" wx:if="{{showZhSubtitle && item.zh}}">{{item.zh}}</text>
+          </view>
           <text class="sub-time">{{formatTime(item.start)}}</text>
-          <text class="sub-text">{{item.en}}</text>
         </view>
       </block>
       <view class="empty-subtitle" wx:if="{{subtitles.length === 0}}">

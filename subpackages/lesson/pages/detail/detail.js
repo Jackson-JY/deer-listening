@@ -15,6 +15,10 @@ Page({
     checkinState: "idle",
     timer: 0,
     videoContext: null,
+    videoLoading: true,      // 视频加载状态
+    downloadProgress: 0,     // 下载进度
+    hasZhSubtitle: false,    // 是否有中文字幕
+    showZhSubtitle: false,   // 是否显示中文字幕
   },
 
   onLoad(options) {
@@ -34,8 +38,6 @@ Page({
   async loadData(courseId, day) {
     console.log("loadData开始, id:", courseId, "day:", day);
     try {
-      wx.showLoading({ title: "加载中..." });
-      
       var courseRes;
       
       // lecture 表优先使用 _id 查询
@@ -52,123 +54,229 @@ Page({
       var course = courseRes.data && courseRes.data[0];
       
       if (!course) {
-        wx.hideLoading();
         wx.showToast({ title: "课程不存在", icon: "none" });
         return;
       }
 
-      // lecture 表字段：title, file, srt_en, srt_zh
-      // 获取云存储视频URL（下载到本地获取临时路径）
-      var videoUrl = "";
-      if (course.file) {
-        try {
-          // 使用 downloadCloudFile 获取临时文件路径供 video 组件使用
-          videoUrl = await cloudDb.downloadCloudFile(course.file);
-          console.log("视频路径:", videoUrl);
-        } catch (e) {
-          console.error("获取视频失败", e);
-        }
-      }
-      
-      // 获取字幕文件内容
-      var enSubUrl = "";
-      var zhSubUrl = "";
-      try {
-        // 下载字幕文件到本地
-        if (course.srt_en) {
-          enSubUrl = await cloudDb.downloadCloudFile(course.srt_en);
-          console.log("英文字幕路径:", enSubUrl);
-        }
-        if (course.srt_zh) {
-          zhSubUrl = await cloudDb.downloadCloudFile(course.srt_zh);
-          console.log("中文字幕路径:", zhSubUrl);
-        }
-      } catch (e) {
-        console.error("获取字幕失败:", e);
-      }
-      
-      // 分别加载字幕内容
-      var enSubtitles = [];
-      var zhSubtitles = [];
-      try {
-        if (enSubUrl) {
-          enSubtitles = await this.parseSrt(enSubUrl);
-          console.log("英文字幕数量:", enSubtitles.length);
-        }
-        if (zhSubUrl) {
-          zhSubtitles = await this.parseSrt(zhSubUrl);
-          console.log("中文字幕数量:", zhSubtitles.length);
-        }
-      } catch (e) {
-        console.warn("加载字幕内容失败:", e);
-      }
-      
       // 格式化状态：首节课免费解锁
       var status = course.status || "locked";
       if (course.isPaid || course.unlocked) status = "unlocked";
       if (course.completed) status = "completed";
       
-      // 确保 day 是数字：优先使用 lecture 表的 day 字段，其次用传入的 day 参数，最后默认 1
+      // 确保 day 是数字
       var courseDay = course.day ? Number(course.day) : (day ? Number(day) : 1);
-      
-      console.log("状态计算 - 原始day:", day, "course.day:", course.day, "courseDay:", courseDay);
       
       // 首节课免费解锁
       if (courseDay === 1) {
-        console.log("Day 1 课程，设置为 unlocked");
         status = "unlocked";
       }
       
-      // 默认显示英文字幕
-      var defaultSubtitles = enSubtitles.length > 0 ? enSubtitles : zhSubtitles;
-      
-      course = {
+      // 组装课程基础信息（不含视频URL，先显示页面）
+      var courseInfo = {
         _id: course._id,
         title: course.title,
         file: course.file,
         srt_en: course.srt_en,
         srt_zh: course.srt_zh,
-        // lecture 表使用 _id
         id: (course._id && course._id !== 'undefined') ? course._id : 'course_' + (courseDay - 1),
         day: courseDay,
-        videoUrl: videoUrl,
-        enSubtitles: enSubtitles,
-        zhSubtitles: zhSubtitles,
         status: status,
+        enSubtitles: [],
+        zhSubtitles: [],
       };
 
+      // 先显示页面基本信息
       this.setData({
-        course: course,
-        videoUrl: videoUrl,
-        subtitles: defaultSubtitles,
-        checkedIn: course.checkedIn || false,
+        course: courseInfo,
+        videoLoading: true,
+        downloadProgress: 0,
       });
 
-      // 保存 videoContext 供字幕点击跳转使用
+      // 保存 videoContext
       this.videoContext = wx.createVideoContext('videoPlayer');
-
-      console.log("课程数据:", course);
-      console.log("视频URL:", videoUrl);
-      console.log("状态:", status);
-
-      // 视频时间由 bindtimeupdate 事件同步，不再使用模拟定时器
       
-      wx.hideLoading();
+      // 异步加载字幕（不阻塞页面显示）
+      this.loadSubtitles(course);
+
+      // 异步下载视频（带进度回调）
+      this.downloadVideoWithProgress(course.file);
+      
     } catch (e) {
       console.error("加载数据失败:", e);
-      console.error("错误详情:", JSON.stringify(e));
-      wx.hideLoading();
       wx.showToast({ title: "加载失败", icon: "none" });
     }
   },
 
-  async parseSrt(filePath) {
-    // 解析 SRT 文件内容
-    // filePath 是已下载的本地临时文件路径
+  // 异步加载字幕
+  async loadSubtitles(course) {
     try {
-      // 使用同步方式读取文件
+      var enSubtitles = [];
+      var zhSubtitles = [];
+      
+      // 并行下载字幕文件
+      if (course.srt_en || course.srt_zh) {
+        var [enSubUrl, zhSubUrl] = await Promise.all([
+          course.srt_en ? cloudDb.downloadCloudFile(course.srt_en) : Promise.resolve(""),
+          course.srt_zh ? cloudDb.downloadCloudFile(course.srt_zh) : Promise.resolve(""),
+        ]);
+        
+        // 解析字幕
+        if (enSubUrl) {
+          enSubtitles = this.parseSrtSync(enSubUrl);
+        }
+        if (zhSubUrl) {
+          zhSubtitles = this.parseSrtSync(zhSubUrl);
+        }
+      }
+      
+      // 合并英文字幕和中文字幕
+      var mergedSubtitles = this.mergeSubtitles(enSubtitles, zhSubtitles);
+      this.setData({
+        subtitles: mergedSubtitles,
+        hasZhSubtitle: zhSubtitles.length > 0,
+      });
+      
+    } catch (e) {
+      console.warn("加载字幕失败:", e);
+    }
+  },
+
+  // 带进度的视频下载
+  downloadVideoWithProgress(filePath) {
+    if (!filePath) {
+      this.setData({ videoLoading: false });
+      return;
+    }
+    
+    // 检查缓存
+    var cachedUrl = cloudDb.getCachedFile(filePath);
+    if (cachedUrl) {
+      console.log("视频已缓存，直接播放");
+      this.onVideoReady(cachedUrl);
+      return;
+    }
+    
+    console.log("开始下载视频:", filePath);
+    
+    // 先获取云存储的临时链接
+    wx.cloud.getTempFileURL({
+      fileList: [filePath],
+    }).then((res) => {
+      if (res.fileList && res.fileList[0] && res.fileList[0].tempFileURL) {
+        var tempUrl = res.fileList[0].tempFileURL;
+        console.log("获取临时链接成功:", tempUrl);
+        this.downloadFileWithProgress(tempUrl, filePath);
+      } else {
+        console.error("获取临时链接失败");
+        this.setData({ videoLoading: false });
+        wx.showToast({ title: "视频加载失败", icon: "none" });
+      }
+    }).catch((err) => {
+      console.error("获取临时链接失败:", err);
+      this.setData({ videoLoading: false });
+      wx.showToast({ title: "视频加载失败", icon: "none" });
+    });
+  },
+
+  // 使用 wx.downloadFile 下载（支持进度监听）
+  downloadFileWithProgress(url, filePath) {
+    var task = wx.downloadFile({
+      url: url,
+      success: (res) => {
+        console.log("下载完成:", res);
+        if (res.statusCode === 200 && res.tempFilePath) {
+          // 缓存文件路径
+          cloudDb.cacheFile(filePath, res.tempFilePath);
+          this.onVideoReady(res.tempFilePath);
+        } else {
+          this.setData({ videoLoading: false });
+          wx.showToast({ title: "视频加载失败", icon: "none" });
+        }
+      },
+      fail: (err) => {
+        console.error("下载失败:", err);
+        this.setData({ videoLoading: false });
+        wx.showToast({ title: "视频加载失败", icon: "none" });
+      }
+    });
+    
+    // 监听下载进度
+    task.onProgressUpdate((res) => {
+      console.log("下载进度:", res.progress);
+      this.setData({ downloadProgress: res.progress });
+    });
+  },
+
+  // 视频准备就绪
+  onVideoReady(videoUrl) {
+    console.log("视频准备就绪:", videoUrl);
+    this.setData({
+      videoUrl: videoUrl,
+      videoLoading: false,
+      downloadProgress: 100,
+    });
+    
+    // 自动播放视频
+    setTimeout(() => {
+      if (this.videoContext) {
+        this.videoContext.play();
+        console.log("自动播放视频");
+      }
+    }, 300);
+  },
+
+  // 同步解析 SRT 文件
+  parseSrtSync(filePath) {
+    try {
       var content = wx.getFileSystemManager().readFileSync(filePath, 'utf-8');
-      console.log("字幕内容长度:", content.length);
+      return this.srtToArray(content);
+    } catch (e) {
+      console.warn("解析SRT失败:", e);
+      return [];
+    }
+  },
+
+  // 合并英文字幕和中文字幕
+  mergeSubtitles(enSubs, zhSubs) {
+    // 以英文字幕为基准，匹配对应时间的中文
+    var zhMap = {};
+    zhSubs.forEach(function(zh) {
+      zhMap[zh.start] = zh.en;  // 存中文内容到 en 字段（复用）
+    });
+    
+    return enSubs.map(function(en) {
+      return {
+        id: en.id,
+        start: en.start,
+        end: en.end,
+        en: en.en,
+        zh: zhMap[en.start] || '',
+      };
+    });
+  },
+
+  // 切换中文字幕显示
+  toggleZhSubtitle() {
+    this.setData({
+      showZhSubtitle: !this.data.showZhSubtitle,
+    });
+  },
+
+  // 视频等待缓冲
+  onVideoWaiting(e) {
+    console.log("视频缓冲中...");
+    this.setData({ videoLoading: true });
+  },
+
+  // 视频播放时更新 playing 状态
+  onVideoPlay(e) {
+    this.setData({ playing: true, videoLoading: false });
+  },
+
+  // 解析 SRT 文件内容
+  parseSrt(filePath) {
+    try {
+      var content = wx.getFileSystemManager().readFileSync(filePath, 'utf-8');
       return this.srtToArray(content);
     } catch (e) {
       console.warn("解析SRT失败:", e);
@@ -208,11 +316,6 @@ Page({
     wx.navigateBack();
   },
 
-  // 视频播放时更新 playing 状态
-  onVideoPlay(e) {
-    this.setData({ playing: true });
-  },
-
   // 视频暂停时更新 playing 状态
   onVideoPause(e) {
     this.setData({ playing: false });
@@ -244,19 +347,8 @@ Page({
     }
   },
 
-  switchLang(e) {
-    var lang = e.currentTarget.dataset.lang;
-    var course = this.data.course;
-    var subtitles = lang === 'zh' ? (course.zhSubtitles || []) : (course.enSubtitles || []);
-    this.setData({ 
-      subtitleLang: lang,
-      subtitles: subtitles,
-    });
-  },
-
   onSubtitleTap(e) {
     var time = Number(e.currentTarget.dataset.time);
-    console.log("点击字幕, time:", time);
     if (this.videoContext) {
       this.videoContext.seek(time);
     }

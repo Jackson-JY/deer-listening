@@ -38,9 +38,9 @@ Page({
       let courses = res.data || [];
       console.log("课程列表:", courses);
       
-      // 处理课程数据：lecture 表字段为 title, file, srt_en, srt_zh
+      // 处理课程数据：lecture 表字段为 title, file, cover, srt_en, srt_zh
       courses = await Promise.all(courses.map(async (course, index) => {
-        // 获取视频URL作为封面（视频首帧）
+        // 获取视频URL
         let videoUrl = "";
         if (course.file) {
           try {
@@ -51,8 +51,20 @@ Page({
           }
         }
         
-        // 封面图：优先用视频，暂无单独封面字段，使用默认占位图
-        const thumbnail = videoUrl || "";
+        // 封面图：优先使用 cover 字段（fileID），否则使用视频
+        let thumbnail = "";
+        if (course.cover) {
+          // cover 是云存储 fileID，转换为临时 URL
+          try {
+            thumbnail = await cloudDb.getCloudFileUrl(course.cover);
+          } catch (e) {
+            console.warn("获取封面URL失败", e);
+          }
+        }
+        // 如果没有 cover 字段，使用视频作为封面
+        if (!thumbnail && videoUrl) {
+          thumbnail = videoUrl;
+        }
         
         // 默认视频时长（15分钟），实际时长需要获取视频metadata
         const duration = "15:00";
@@ -92,7 +104,6 @@ Page({
       });
       wx.hideLoading();
     } catch (e) {
-      console.error("加载课程失败", e);
       wx.hideLoading();
       wx.showToast({ title: "加载失败", icon: "none" });
     }
@@ -108,7 +119,6 @@ Page({
         this.setData({ streak: res.data[0].streak || 0 });
       }
     } catch (e) {
-      console.error("加载用户数据失败", e);
     }
   },
 

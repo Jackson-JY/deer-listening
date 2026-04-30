@@ -3,7 +3,7 @@
   "projectname": "ielts-miniprogram",
   "description": "雅思听力训练营小程序",
   "appid": "wx044e2cc3063fd421",
-  "cloudfunctionTemplateRoot": "cloudfunctionTemplate",
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
   "cloudbaseTemplate": {
     "ci": "cloud1-1g8cunkpa5bc6421"
   },

@@ -379,7 +379,7 @@
 .auth-sheet {
   background: #FFFFFF;
   border-radius: 56rpx 56rpx 0 0;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 -24rpx 100rpx rgba(100, 80, 130, 0.2);
 }
 
@@ -820,6 +820,7 @@
   flex-direction: column;
   align-items: center;
   margin-bottom: 40rpx;
+  position: relative;
 }
 
 .avatar-upload-btn {
@@ -830,6 +831,8 @@
   border: none;
   background: transparent;
   border-radius: 50%;
+  overflow: visible;
+  z-index: 1;
 }
 
 .avatar-upload-btn::after {
@@ -859,6 +862,7 @@
   font-size: 26rpx;
   border: 4rpx solid #fff;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
 .avatar-hint {

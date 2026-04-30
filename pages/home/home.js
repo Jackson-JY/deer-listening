@@ -55,20 +55,36 @@ Page({
 
       const userData = await auth.getUserInfo();
 
+      // 处理预览课程封面图
+      const previewCourses = await Promise.all(
+        (coursesRes.data || []).slice(0, 3).map(async (course, index) => {
+          let thumbnail = "";
+          if (course.cover) {
+            // cover 是云存储 fileID，转换为临时 URL
+            try {
+              thumbnail = await cloudDb.getCloudFileUrl(course.cover);
+            } catch (e) {
+              console.warn("获取封面URL失败", e);
+            }
+          }
+          return {
+            ...course,
+            id: course._id || `course_${index}`,
+            day: course.day || (index + 1),
+            thumbnail,
+          };
+        })
+      );
+
       this.setData({
         banners: bannersRes.data || [],
         sellingPoints: sellingPointsRes.data || [],
         stats: statsRes.data || [],
         reviews: reviewsRes.data || [],
-        previewCourses: (coursesRes.data || []).slice(0, 3).map((course, index) => ({
-          ...course,
-          id: course._id || `course_${index}`,
-          day: course.day || (index + 1),
-        })),
+        previewCourses,
         userData,
       });
     } catch (e) {
-      console.error("加载数据失败", e);
     }
   },
 
